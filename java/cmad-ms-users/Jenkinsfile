@@ -1,38 +1,37 @@
-pipeline {
-    agent any
-    triggers {
-        pollSCM('H/2 * * * *' )
-    }
-    tools{
-        maven 'Maven 3.6.1'
-    }
-
-    stages {   
-        stage('Build'){
-            steps { 
-                echo 'Building..'
-                sh 'mvn -f worker/pom.xml compile'
-            }
-        }
-    }
-    stage('Test'){
-         steps {
-                echo 'Packaging..'
-                sh 'mvn -f worker/pom.xml test'
-            }
-    }
-    stage('Package'){
-         steps {
-                echo 'Testing..'
-                sh 'mvn -f worker/pom.xml package -DiskipTests'
-                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
-            }
-    }
-    posts{
-        always{
-            echo 'Buliding multibranch and pipeline for users is complated'
-        }
-    }
+pipeline{
+      agent{
+         docker{
+           image 'maven:3.6.1-jdk-8-slim'
+           args '-v $HOME/.m2:/root/.m2'
+         }
 }
+      stages{
+          stage('build'){
+              steps{
+                  echo 'building users app'
+                  dir('java/cmad-ms-users'){
+                    sh 'mvn compile'
+                  }
+} }
+stage('test'){
 
- 
+  steps{
+                  echo 'running unit tests on users app'
+                  dir('java/cmad-ms-users'){
+                    sh 'mvn clean test'
+                  }
+} }
+          stage('package'){
+              steps{
+                  echo 'packaging users app into a jarfile'
+                  dir('java/cmad-ms-users'){
+                    sh 'mvn package -DskipTests'
+                    archiveArtifacts artifacts: 'java/cmad-ms-users/target/
+  *.jar', fingerprint: true
+} }
+} }
+      post{
+          always{
+              echo 'the job is complete'
+          }
+} }
